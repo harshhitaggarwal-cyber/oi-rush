@@ -107,7 +107,7 @@ def option_chain(symbol: str, market: str = Query(default="NSE"), expiry: str = 
     saved = latest_snapshot(m, symbol, expiry)
     if saved:
         return saved
-    raise HTTPException(status_code=404, detail="No persisted NSE snapshot exists for this underlying and expiry. Do not treat a live or stale response as the 18:00 snapshot.")
+    raise HTTPException(status_code=404, detail="No persisted NSE snapshot exists for this underlying and expiry. Do not treat a live or stale response as the 19:30 snapshot.")
 
 @app.get("/v1/snapshot-status")
 def snapshot_status():
@@ -115,7 +115,7 @@ def snapshot_status():
     calendar = calendar_from_env("NSE")
     return {
         "timezone": "Asia/Kolkata",
-        "target_snapshot_times": {"NSE": "18:00"},
+        "target_snapshot_times": {"NSE": "19:30"},
         "current_time_ist": datetime.now(IST).isoformat(),
         "scheduler_process_required": True,
         "holiday_calendars": {
