@@ -24,6 +24,29 @@ The code expects a vendor gateway exposing the normalized API contract documente
 
 The gateway must expose /instruments?market=NSE and /option-chain?market=NSE&underlying=NIFTY&expiry=YYYY-MM-DD. A real vendor adapter must map the actual licensed vendor protocol into this contract; do not put credentials in Git.
 
+## Import an NSE option-chain CSV (manual, backend-side)
+
+The backend accepts a CSV exported by an operator from the official NSE Option Chain page. This is a manual import workflow; the API does not automatically scrape or download NSE content.
+
+1. Set a long random `OI_RUSH_CSV_IMPORT_TOKEN` in the backend environment and restart the API.
+2. Export the selected NSE equity-derivatives option chain using NSE's Download (.csv) control.
+3. Send the CSV text to `POST /v1/admin/import/nse-csv` as JSON with `symbol`, `expiry`, `session_date`, `source_timestamp`, `underlying_price`, and `csv_text`. Supply the token in the `X-Import-Token` header. The source timestamp must be the actual timestamp displayed by NSE, with timezone offset; do not use the upload time.
+4. The backend validates the rows, calculates OI PCR/LTP PCR and strategy labels, and saves the snapshot for the app.
+
+Example request body:
+```json
+{
+  "symbol": "NIFTY",
+  "expiry": "2026-10-27",
+  "session_date": "2026-10-23",
+  "source_timestamp": "2026-10-23T15:30:00+05:30",
+  "underlying_price": 25450.5,
+  "csv_text": "<paste the full downloaded CSV text here>"
+}
+```
+
+This import endpoint is disabled unless the token is configured. Manual CSV import does not create a daily automatic fetch; automatic retrieval from NSE still requires confirmation that the intended automated collection and app display are permitted.
+
 ## Configure exchange calendars
 Copy backend/.env.example to backend/.env and populate complete NSE F&O holiday/special-session dates from the official NSE annual calendar. Variables include OI_RUSH_NSE_CALENDAR_YEAR, OI_RUSH_NSE_HOLIDAYS, and OI_RUSH_NSE_SPECIAL_SESSIONS (comma-separated YYYY-MM-DD). Empty calendars fail closed. Example dates in documentation are illustrative only, not official lists.
 
