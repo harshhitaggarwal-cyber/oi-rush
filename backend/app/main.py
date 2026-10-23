@@ -9,8 +9,10 @@ from .providers import HttpJsonProvider
 from .snapshot_job import latest_snapshot, persist_snapshot
 from .nse_csv_import import parse_nse_option_chain_csv
 from .providers import validate_chain_payload
+from .csv_upload import router as csv_upload_router
 
-app = FastAPI(title="OI Rush API", version="0.2.2")
+app = FastAPI(title="OI Rush API", version="0.2.3")
+app.include_router(csv_upload_router)
 IST = ZoneInfo("Asia/Kolkata")
 
 def get_provider():
