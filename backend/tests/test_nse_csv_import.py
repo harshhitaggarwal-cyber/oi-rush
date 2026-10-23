@@ -1,3 +1,6 @@
+import csv
+import io
+
 import pytest
 
 from app.nse_csv_import import parse_nse_option_chain_csv
@@ -12,7 +15,11 @@ def test_parse_nse_csv_strike_oi_ltp_and_change_in_oi():
     row[17] = "98.50"
     row[20] = "-45"
     row[21] = "23,456"
-    csv_text = ",".join(["CALLS"] + [""] * 21) + "\n" + ",".join(row)
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["CALLS"] + [""] * 21)
+    writer.writerow(row)
+    csv_text = output.getvalue()
     parsed = parse_nse_option_chain_csv(csv_text)
     assert parsed == [{
         "strike": 25000.0,
