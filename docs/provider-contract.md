@@ -1,6 +1,6 @@
 # OI Rush NSE licensed data provider contract
 
-OI Rush does not scrape exchange webpages. Configure an authorized vendor gateway with OI_RUSH_PROVIDER_BASE_URL, OI_RUSH_PROVIDER_TOKEN, and optionally OI_RUSH_PROVIDER_NAME. Keep secrets in deployment environment variables, never Git. MCX is not currently supported by the app, API, or scheduler.
+OI Rush does not scrape exchange webpages. Configure an authorized vendor gateway with `OI_RUSH_PROVIDER_BASE_URL`, `OI_RUSH_PROVIDER_TOKEN`, and optionally `OI_RUSH_PROVIDER_NAME`. Keep secrets in deployment environment variables, never Git. Only NSE is currently supported.
 
 ## Endpoints required from the vendor gateway
 
@@ -14,22 +14,26 @@ Example shape:
 
     {
       "market": "NSE", "underlying": "NIFTY", "expiry": "2026-10-27",
-      "source_timestamp": "2026-10-23T18:00:01+05:30",
+      "source_timestamp": "2026-10-23T15:30:00+05:30",
       "session_date": "2026-10-23", "underlying_price": 25450.5,
       "rows": [{"strike":25400,"call_oi":1234,"put_oi":2345,
         "call_coi":123,"put_coi":456,"call_ltp":110.5,"put_ltp":99.5}]
     }
 
-## Snapshot-time session calendar: NSE 18:00 IST
+## Manual CSV import
 
-Configure these variables: OI_RUSH_NSE_CALENDAR_YEAR, OI_RUSH_NSE_HOLIDAYS, and OI_RUSH_NSE_SPECIAL_SESSIONS. Date lists are comma-separated ISO dates. Calendar-year bounds are mandatory; dates outside the configured year fail closed. Update the calendar annually from official NSE F&O circulars.
+An operator can download the CSV using the official NSE Option Chain page's Download (.csv) control, then upload it through the Flutter app or the protected backend endpoint. This is a manual upload, not automated website collection.
 
-Important:
+- Configure a long random `OI_RUSH_CSV_IMPORT_TOKEN` in the API environment.
+- The Flutter app sends the file to `POST /v1/admin/upload/nse-csv` as multipart form data. Required metadata: symbol, expiry, session date, actual source timestamp with timezone offset, and underlying price. The token is sent in the `X-Import-Token` header.
+- The backend validates the CSV and metadata before persisting a snapshot. Files are limited to 5 MB.
+- The JSON alternative `POST /v1/admin/import/nse-csv` is available for trusted backend tooling.
+- Never use upload time as the market-data source timestamp.
 
 ## Snapshot behavior
 
-- Scheduler targets NSE at 18:00 Asia/Kolkata. MCX 23:59 is after the published 23:30/23:55 close for internationally referenceable non-agricultural commodities on ordinary sessions, but it does not mean all commodity categories traded until that time. Each row must retain the provider's actual source timestamp; 23:59 is the capture run time, not a fabricated quote timestamp.
-- It skips weekends/holidays and refuses snapshots if calendar/provider configuration is missing or calendar coverage is out of range.
+- The configured scheduler target is 19:30 Asia/Kolkata for authorized provider fetching. It retries the provider until 20:30. This schedule does not automate manual CSV imports.
+- It skips weekends/holidays and refuses scheduled snapshots if calendar/provider configuration is missing or calendar coverage is out of range.
 - SQLite is for local single-instance development; use managed PostgreSQL and backups in production.
 - Snapshot key is market + underlying + expiry + session date, so retries update rather than duplicate a session record.
 - The API serves persisted snapshots only. If no snapshot exists, it returns an unavailable/not-found response rather than silently fetching a different-time chain and labelling it the scheduled snapshot.
