@@ -1,0 +1,1 @@
+"""OI Rush backend package."""
