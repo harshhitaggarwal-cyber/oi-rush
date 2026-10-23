@@ -3,6 +3,7 @@ import hmac
 import os
 from zoneinfo import ZoneInfo
 from fastapi import FastAPI, Header, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from .market_calendar import calendar_from_env
 from .providers import HttpJsonProvider
@@ -12,6 +13,21 @@ from .providers import validate_chain_payload
 from .csv_upload import router as csv_upload_router
 
 app = FastAPI(title="OI Rush API", version="0.2.3")
+_allowed_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "OI_RUSH_CORS_ORIGINS",
+        "http://localhost:3000,http://localhost:5000,http://localhost:5173,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:5000,http://127.0.0.1:5173,http://127.0.0.1:8080",
+    ).split(",")
+    if origin.strip()
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_allowed_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Import-Token"],
+)
 app.include_router(csv_upload_router)
 IST = ZoneInfo("Asia/Kolkata")
 
