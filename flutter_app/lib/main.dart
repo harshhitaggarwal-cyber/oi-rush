@@ -102,6 +102,7 @@ class _CsvUploadScreenState extends State<CsvUploadScreen> {
   bool _uploading = false;
   String? _message;
   bool _success = false;
+  Map<String, dynamic>? _snapshot;
 
   @override
   void dispose() {
@@ -149,8 +150,126 @@ class _CsvUploadScreenState extends State<CsvUploadScreen> {
       final response = await http.Response.fromStream(streamed);
       final decoded = jsonDecode(response.body);
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        final chainResponse = await http.get(Uri.parse(
+          '${apiBaseUrl.replaceFirst(RegExp(r'/+
+        final detail = decoded is Map ? (decoded['detail'] ?? 'Upload failed') : 'Upload failed';
+        setState(() { _success = false; _message = '$detail'; });
+      }
+    } catch (e) {
+      setState(() { _success = false; _message = 'Could not reach the OI Rush API. Check API URL and connection. Details: $e'; });
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  InputDecoration _decoration(String label, String hint) => InputDecoration(
+    labelText: label, hintText: hint, border: const OutlineInputBorder(),
+  );
+
+  String? _required(String? value) => value == null || value.trim().isEmpty ? 'Required' : null;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Upload NSE CSV')),
+    body: Form(
+      key: _formKey,
+      child: ListView(
+        padding: const EdgeInsets.all(18),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: panel, borderRadius: BorderRadius.circular(16)),
+            child: const Text(
+              'Download the option-chain CSV manually from NSE, then upload it here. Enter the metadata shown for that same snapshot; do not use the upload time as the source timestamp.',
+              style: TextStyle(height: 1.45, color: Color(0xFFC2D0E5)),
+            ),
+          ),
+          const SizedBox(height: 18),
+          OutlinedButton.icon(
+            onPressed: _uploading ? null : _chooseFile,
+            icon: const Icon(Icons.attach_file_rounded),
+            label: Text(_file == null ? 'Choose NSE .csv file' : _file!.name),
+          ),
+          const SizedBox(height: 16),
+          TextFormField(controller: _symbol, decoration: _decoration('Underlying symbol', 'NIFTY / BANKNIFTY / RELIANCE'), validator: _required, textCapitalization: TextCapitalization.characters),
+          const SizedBox(height: 12),
+          TextFormField(controller: _expiry, decoration: _decoration('Expiry date', 'YYYY-MM-DD'), validator: _required),
+          const SizedBox(height: 12),
+          TextFormField(controller: _sessionDate, decoration: _decoration('Session date', 'YYYY-MM-DD'), validator: _required),
+          const SizedBox(height: 12),
+          TextFormField(controller: _sourceTimestamp, decoration: _decoration('Actual source timestamp', '2026-10-23T15:30:00+05:30'), validator: _required),
+          const SizedBox(height: 12),
+          TextFormField(controller: _underlyingPrice, decoration: _decoration('Underlying price', '25450.5'), keyboardType: const TextInputType.numberWithOptions(decimal: true), validator: (v) {
+            if (v == null || v.trim().isEmpty) return 'Required';
+            if (double.tryParse(v.trim()) == null || double.parse(v.trim()) <= 0) return 'Enter a valid positive price';
+            return null;
+          }),
+          const SizedBox(height: 12),
+          TextFormField(controller: _token, decoration: _decoration('Admin import token', 'Configured by the API operator'), obscureText: true, validator: _required),
+          const SizedBox(height: 8),
+          Text('API: $apiBaseUrl', style: const TextStyle(fontSize: 11, color: Color(0xFF7F91AF))),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: _uploading ? null : _upload,
+            icon: _uploading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.cloud_upload_rounded),
+            label: Text(_uploading ? 'Validating and uploading…' : 'Upload and save snapshot'),
+          ),
+          if (_message != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: panel,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _success ? mint : Colors.orangeAccent),
+              ),
+              child: Text(_message!, style: TextStyle(color: _success ? mint : Colors.orangeAccent, height: 1.4)),
+            ),
+          ],
+          if (_snapshot != null && _snapshot!['rows'] is List) ...[
+            const SizedBox(height: 24),
+            Text('${_snapshot!['underlying']} · ${_snapshot!['expiry']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            Text('Session: ${_snapshot!['session_date']} · Source: ${_snapshot!['source_timestamp']} · Underlying: ${_snapshot!['underlying_price']}', style: const TextStyle(color: Color(0xFF9FB2D0), height: 1.4)),
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                columns: const [
+                  DataColumn(label: Text('Strike')),
+                  DataColumn(label: Text('OI PCR')),
+                  DataColumn(label: Text('LTP PCR')),
+                  DataColumn(label: Text('OI Analysis')),
+                ],
+                rows: (_snapshot!['rows'] as List).map((item) {
+                  final row = item as Map<String, dynamic>;
+                  String value(dynamic v) => v == null ? '—' : (v is num ? v.toStringAsFixed(4) : v.toString());
+                  return DataRow(cells: [
+                    DataCell(Text(value(row['strike']))),
+                    DataCell(Text(value(row['oi_pcr']))),
+                    DataCell(Text(value(row['ltp_pcr']))),
+                    DataCell(Text(row['oi_analysis']?.toString() ?? 'Neutral / No Setup')),
+                  ]);
+                }).toList(),
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+          const Text('Use only the official NSE CSV export. A successful upload saves a snapshot; it does not enable automatic fetching.', style: TextStyle(color: Color(0xFF9FB2D0), height: 1.4)),
+        ],
+      ),
+    ),
+  );
+}
+), '')}/v1/option-chain/${Uri.encodeComponent(_symbol.text.trim().toUpperCase())}?market=NSE&expiry=${Uri.encodeQueryComponent(_expiry.text.trim())}',
+        )).timeout(const Duration(seconds: 30));
+        Map<String, dynamic>? snapshot;
+        if (chainResponse.statusCode >= 200 && chainResponse.statusCode < 300) {
+          snapshot = jsonDecode(chainResponse.body) as Map<String, dynamic>;
+        }
         setState(() {
           _success = true;
+          _snapshot = snapshot;
           _message = 'Uploaded successfully. ${decoded['row_count']} strikes saved for ${decoded['underlying']} / ${decoded['expiry']}. Source: ${decoded['source_timestamp']}.';
         });
       } else {
