@@ -22,10 +22,10 @@ The code expects a vendor gateway exposing the normalized API contract documente
 - OI_RUSH_PROVIDER_TOKEN
 - OI_RUSH_PROVIDER_NAME (optional)
 
-The gateway must expose /instruments?market=NSE|MCX and /option-chain?market=NSE&underlying=NIFTY&expiry=YYYY-MM-DD. A real vendor adapter must map the actual licensed vendor protocol into this contract; do not put credentials in Git.
+The gateway must expose /instruments?market=NSE and /option-chain?market=NSE&underlying=NIFTY&expiry=YYYY-MM-DD. A real vendor adapter must map the actual licensed vendor protocol into this contract; do not put credentials in Git.
 
 ## Configure exchange calendars
-Copy backend/.env.example to backend/.env and populate separate complete holiday/special-session dates from the official NSE and MCX annual calendars. Variables include OI_RUSH_NSE_CALENDAR_YEAR, OI_RUSH_NSE_HOLIDAYS, and OI_RUSH_NSE_SPECIAL_SESSIONS (comma-separated YYYY-MM-DD). Empty calendars fail closed. Example dates in documentation are illustrative only, not official lists.
+Copy backend/.env.example to backend/.env and populate complete NSE F&O holiday/special-session dates from the official NSE annual calendar. Variables include OI_RUSH_NSE_CALENDAR_YEAR, OI_RUSH_NSE_HOLIDAYS, and OI_RUSH_NSE_SPECIAL_SESSIONS (comma-separated YYYY-MM-DD). Empty calendars fail closed. Example dates in documentation are illustrative only, not official lists.
 
 ## Run backend locally
 ```bash
