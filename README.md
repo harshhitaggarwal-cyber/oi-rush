@@ -24,13 +24,13 @@ The code expects a vendor gateway exposing the normalized API contract documente
 
 The gateway must expose /instruments?market=NSE and /option-chain?market=NSE&underlying=NIFTY&expiry=YYYY-MM-DD. A real vendor adapter must map the actual licensed vendor protocol into this contract; do not put credentials in Git.
 
-## Import an NSE option-chain CSV (manual, backend-side)
+## Import an NSE option-chain CSV (manual upload)
 
 The backend accepts a CSV exported by an operator from the official NSE Option Chain page. This is a manual import workflow; the API does not automatically scrape or download NSE content.
 
 1. Set a long random `OI_RUSH_CSV_IMPORT_TOKEN` in the backend environment and restart the API.
 2. Export the selected NSE equity-derivatives option chain using NSE's Download (.csv) control.
-3. Send the CSV text to `POST /v1/admin/import/nse-csv` as JSON with `symbol`, `expiry`, `session_date`, `source_timestamp`, `underlying_price`, and `csv_text`. Supply the token in the `X-Import-Token` header. The source timestamp must be the actual timestamp displayed by NSE, with timezone offset; do not use the upload time.
+3. In the Flutter app, open NSE analysis and tap the upload icon. Choose the `.csv` file and enter the symbol, expiry (`YYYY-MM-DD`), session date (`YYYY-MM-DD`), actual source timestamp (including timezone offset), underlying price, and import token. The app sends a multipart upload to `POST /v1/admin/upload/nse-csv`. The source timestamp must be the actual timestamp for that snapshot, not the upload time. The older JSON endpoint `POST /v1/admin/import/nse-csv` remains available for backend tooling.
 4. The backend validates the rows, calculates OI PCR/LTP PCR and strategy labels, and saves the snapshot for the app.
 
 Example request body:
@@ -50,7 +50,7 @@ This import endpoint is disabled unless the token is configured. Manual CSV impo
 ## Configure exchange calendars
 Copy backend/.env.example to backend/.env and populate complete NSE F&O holiday/special-session dates from the official NSE annual calendar. Variables include OI_RUSH_NSE_CALENDAR_YEAR, OI_RUSH_NSE_HOLIDAYS, and OI_RUSH_NSE_SPECIAL_SESSIONS (comma-separated YYYY-MM-DD). Empty calendars fail closed. Example dates in documentation are illustrative only, not official lists.
 
-## Run backend locally
+## Run the Flutter app\n```bash\ncd flutter_app\nflutter pub get\nflutter run --dart-define=OI_RUSH_API_URL=http://localhost:8000\n```\nFor an Android emulator, use `--dart-define=OI_RUSH_API_URL=http://10.0.2.2:8000`. For a deployed app, set the URL to your HTTPS API host. Do not embed the admin import token in the app; enter it only when performing an authorized manual upload.\n\n## Run backend locally
 ```bash
 cd backend
 python -m venv .venv
