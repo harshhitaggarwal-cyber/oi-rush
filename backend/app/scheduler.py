@@ -1,12 +1,9 @@
-"""Market-specific daily snapshot scheduler in Asia/Kolkata time.
+"""NSE-only daily snapshot scheduler in Asia/Kolkata time.
 
-NSE target: 18:00 IST.
-MCX target: 23:59 IST (after the normal evening session close).
-The provider's actual source timestamp remains authoritative; capture time is not
-misrepresented as the exchange's quote timestamp.
+NSE target: 18:00 IST. Provider source timestamps remain authoritative.
 """
 import logging
-from datetime import date, datetime, timedelta
+from datetime import datetime
 from zoneinfo import ZoneInfo
 from apscheduler.schedulers.blocking import BlockingScheduler
 from .market_calendar import calendar_from_env
@@ -15,11 +12,14 @@ from .snapshot_job import run_snapshot
 
 IST = ZoneInfo("Asia/Kolkata")
 LOG = logging.getLogger("oi_rush.scheduler")
-TARGETS = {"NSE": (18, 0), "MCX": (23, 59)}
+TARGETS = {"NSE": (18, 0)}
 
 def run_market_snapshot(market: str):
     now = datetime.now(IST)
     market = market.upper()
+    if market != "NSE":
+        LOG.error("%s: market is disabled; only NSE snapshots are enabled", market)
+        return
     calendar = calendar_from_env(market)
     if not calendar.configured:
         LOG.error("%s: exchange calendar missing; no snapshot made", market)
@@ -48,7 +48,7 @@ def main():
             id=f"oi-rush-{market.lower()}-daily-snapshot",
             misfire_grace_time=3600, coalesce=True, max_instances=1,
         )
-    LOG.info("OI Rush scheduler started; NSE 18:00 IST, MCX 23:59 IST")
+    LOG.info("OI Rush NSE-only scheduler started; NSE 18:00 IST")
     scheduler.start()
 
 if __name__ == "__main__":
