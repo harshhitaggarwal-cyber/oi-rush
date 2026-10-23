@@ -2,17 +2,18 @@
 
 **Let's enter the world of FnO with an EDGE.**
 
-Flutter + FastAPI starter for NSE index/stock options and MCX commodity options. The API calculates OI PCR = Put Total OI / Call Total OI and LTP PCR = Put LTP / Call LTP. OI strategy classification is server-side.
+Flutter + FastAPI starter for NSE index and stock options only. MCX is currently out of scope and disabled in the API and scheduler. The API calculates OI PCR = Put Total OI / Call Total OI and LTP PCR = Put LTP / Call LTP. OI strategy classification is server-side.
 
 ## Current status
-- Provider adapter, data validation, SQLite snapshot persistence, exchange-calendar configuration, NSE 18:00 / MCX 23:59 IST scheduler, and backend tests are in the repository.
-- No live NSE/MCX feed is connected yet. Credentials and an authorized vendor agreement are not available in this repository.
+- Provider adapter, data validation, SQLite snapshot persistence, exchange-calendar configuration, NSE 18:00 IST scheduler, and backend tests are in the repository.
+- No live NSE feed is connected yet. Provider credentials and an authorized vendor agreement are not configured.
 - Never present sample or stale rows as current market data.
 - Public exchange webpage access is not, by itself, permission to automate extraction or redistribute data/derived analytics in a paid app. A genuinely free source may be used only if its terms expressly allow the intended use.
 
-## Official data access
-- NSE Data & Analytics: https://www.nseindia.com/static/market-data/real-time-data-subscription and https://www.nseindia.com/static/market-data/nse-data-policy. Contact: marketdata@nse.co.in.
-- MCX datafeed: https://www.mcxindia.com/technology/datafeed and https://www.mcxindia.com/faq/technology-services. Contact: datafeed@mcxindia.com.
+## Official NSE data access
+- NSE Data & Analytics: https://www.nseindia.com/static/market-data/real-time-data-subscription
+- NSE data policy: https://www.nseindia.com/static/market-data/nse-data-policy
+- Contact: marketdata@nse.co.in.
 - Confirm the agreement covers the app/mobile display, commercial use, derived OI analysis, persistence/history, and expected subscriber count. If using a vendor, confirm it is authorized for the needed segments and that redistribution to OI Rush subscribers is permitted.
 
 ## Configure a licensed vendor adapter
@@ -24,7 +25,7 @@ The code expects a vendor gateway exposing the normalized API contract documente
 The gateway must expose /instruments?market=NSE|MCX and /option-chain?market=NSE&underlying=NIFTY&expiry=YYYY-MM-DD. A real vendor adapter must map the actual licensed vendor protocol into this contract; do not put credentials in Git.
 
 ## Configure exchange calendars
-Copy backend/.env.example to backend/.env and populate separate complete holiday/special-session dates from the official NSE and MCX annual calendars. Variables include OI_RUSH_NSE_CALENDAR_YEAR, OI_RUSH_NSE_HOLIDAYS, OI_RUSH_NSE_SPECIAL_SESSIONS, OI_RUSH_MCX_CALENDAR_YEAR, OI_RUSH_MCX_HOLIDAYS, and OI_RUSH_MCX_SPECIAL_SESSIONS (comma-separated YYYY-MM-DD). Empty calendars fail closed. Example dates in documentation are illustrative only, not official lists.
+Copy backend/.env.example to backend/.env and populate separate complete holiday/special-session dates from the official NSE and MCX annual calendars. Variables include OI_RUSH_NSE_CALENDAR_YEAR, OI_RUSH_NSE_HOLIDAYS, and OI_RUSH_NSE_SPECIAL_SESSIONS (comma-separated YYYY-MM-DD). Empty calendars fail closed. Example dates in documentation are illustrative only, not official lists.
 
 ## Run backend locally
 ```bash
@@ -42,7 +43,7 @@ cd backend
 source .venv/bin/activate
 python -m app.scheduler
 ```
-The scheduler targets NSE at 18:00 and MCX at 23:59 Asia/Kolkata on configured session days. MCX's source timestamp is still taken from the provider; the app must not claim that every commodity traded until 23:59. It does not create snapshots if the provider or calendar is missing. Run both services continuously on a reliable host to execute scheduled jobs.
+The scheduler targets NSE at 18:00 Asia/Kolkata on configured session days. It does not create snapshots if the provider or calendar is missing. Run both services continuously on a reliable host to execute scheduled jobs.
 
 ## Docker local setup
 1. Copy backend/.env.example to backend/.env and configure it.
@@ -67,7 +68,7 @@ GitHub Actions runs backend tests on relevant pushes and pull requests.
 - Otherwise Neutral / No Setup.
 
 ## Still required before production
-- Authorized NSE and MCX feed and explicit commercial/derived-data display rights.
-- Vendor-specific protocol mapping and full active contract master, including MCX options-on-futures expiry context.
-- Verified official holiday/special-session calendars and production scheduler.
+- Authorized NSE feed and explicit commercial/derived-data display rights.
+- Vendor-specific protocol mapping and complete active NSE contract master.
+- Verified official NSE F&O holiday/special-session calendar and production scheduler.
 - Managed database, authentication, subscription entitlement checks, monitoring, backup/restore and Android device tests.
