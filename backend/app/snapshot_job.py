@@ -115,6 +115,10 @@ def run_snapshot(exchange: str, session_date: date, calendar: ExchangeCalendar,
         result = {"status": "UNAVAILABLE", "reason": "calendar_unconfigured", "session_date": str(session_date)}
         record_run(exchange, session_date, result["status"], result, db_path, started)
         return result
+    if calendar_status == "CALENDAR_OUT_OF_RANGE":
+        result = {"status": "UNAVAILABLE", "reason": "calendar_out_of_range", "session_date": str(session_date)}
+        record_run(exchange, session_date, result["status"], result, db_path, started)
+        return result
     if calendar_status == "NON_TRADING_DAY":
         result = {"status": "SKIPPED", "reason": "non_trading_day", "session_date": str(session_date)}
         record_run(exchange, session_date, result["status"], result, db_path, started)
