@@ -24,3 +24,10 @@ def test_provider_missing_never_generates_snapshot(tmp_path):
     result=run_snapshot("NSE",date(2026,10,26),cal,UnconfiguredProvider(),[],tmp_path/"test.sqlite3")
     assert result["status"] == "UNAVAILABLE"
     assert result["reason"] == "provider_unconfigured"
+
+
+def test_snapshot_refuses_out_of_range_calendar(tmp_path):
+    cal=ExchangeCalendar.from_dates("NSE",[date(2026,1,26)],calendar_year=2026)
+    result=run_snapshot("NSE",date(2027,1,4),cal,UnconfiguredProvider(),[],tmp_path/"test.sqlite3")
+    assert result["status"] == "UNAVAILABLE"
+    assert result["reason"] == "calendar_out_of_range"
